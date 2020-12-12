@@ -1,0 +1,11 @@
+{
+    "name": "root/web-requester",
+    "require": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+    	"psr-4": {
+    		"ProjectDir": "/commando"
+    	}
+    }
+}

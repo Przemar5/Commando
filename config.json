@@ -1,0 +1,15 @@
+{
+	"syntax": "[,options] [command] [,args]",
+	"options": [
+		"--colors [true|false]",
+		"--logFile [filename]"
+	],
+	"command": {
+		"make:query": {
+			"syntax": "[,options] make:query [queryName]",
+			"options": [
+				"--dev"
+			]
+		}
+	}
+}
