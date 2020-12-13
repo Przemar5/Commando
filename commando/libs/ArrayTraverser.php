@@ -20,16 +20,13 @@ class ArrayTraverser implements Traverser
 		if (empty($chain)) {
 			return true;
 		}
-		elseif (is_array($data) && array_key_exists($chain[0], $data)) {
-			if (is_string($chain[0]) || is_int($chain[0])) {
-				return $this->checkIfExistsChainForData(
-					array_slice($chain, 1),
-					$data[$chain[0]]
-				);
-			}
-			else {
-				return false;
-			}
+		elseif (is_array($data) && array_key_exists($chain[0], $data) && 
+			is_string($chain[0]) || is_int($chain[0])) {
+			
+			return $this->checkIfExistsChainForData(
+				array_slice($chain, 1),
+				$data[$chain[0]]
+			);
 		}
 		else {
 			return false;
@@ -51,16 +48,14 @@ class ArrayTraverser implements Traverser
 		if (empty($chain)) {
 			return $data;
 		}
+		elseif (is_string($chain[0]) || is_int($chain[0])) {
+			return $this->traverseByKeyChain(
+				array_slice($chain, 1),
+				$data[$chain[0]]
+			);
+		}
 		else {
-			if (is_string($chain[0]) || is_int($chain[0])) {
-				return $this->traverseByKeyChain(
-					array_slice($chain, 1),
-					$data[$chain[0]]
-				);
-			}
-			else {
-				return null;
-			}
+			return null;
 		}
 	}
 
