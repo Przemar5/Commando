@@ -20,49 +20,54 @@ class ConfigDTOImpl extends ArrayTraverser implements ConfigDTO
 		return $this->nestedKeyChainExists(['commands', $command]);
 	}
 
-	public function getSyntax()
+	public function getSyntax(): ?string
 	{
-		if (array_key_exists('syntax', $this->data))
-			return $this->data['syntax'];
+		return (array_key_exists('syntax', $this->data))
+			? $this->data['syntax'] : null;
 	}
 
-	public function getGenericOptions()
+	public function getGenericOptions(): array
 	{
-		if (array_key_exists('options', $this->data))
-			return $this->data['options'];
+		return (array_key_exists('options', $this->data))
+			? $this->data['options'] : [];
 	}
 
 	public function isGenericOptionAvailable(string $option): bool
 	{
-		return in_array($option, $this->getGenericOptions() ?? []);
+		return in_array($option, 
+			array_keys($this->getGenericOptions()) ?? []);
 	}
 
-	public function getCommandDetails(string $command)
+	public function getCommandDetails(string $command): ?array
 	{
 		$chain = ['commands', $command];
+		$details = $this->getValueIfKeyChainExists($chain);
 
-		return $this->getValueIfKeyChainExists($chain);
+		return is_array($details) ? $details : null;
 	}
 
-	private function getValueIfKeyChainExists(array $chain)
-	{
-		if ($this->nestedKeyChainExists($chain))
-			return $this->getValueByNestedKeyChain($chain);
-	}
-
-	public function getSpecificOptionsForCommand(string $command)
+	public function getSpecificOptionsForCommand(string $command): array
 	{
 		$chain = ['commands', $command, 'options'];
 
-		return $this->getValueIfKeyChainExists($chain);
+		return $this->getValueIfKeyChainExists($chain) ?? [];
 	}
 
-	public function getOptionsForCommand(string $command)
+	public function getOptionsForCommand(string $command): array
 	{
 		return array_merge(
-			$this->getGenericOptions() ?? [],
-			$this->getSpecificOptionsForCommand($command) ?? []
+			$this->getGenericOptions(),
+			$this->getSpecificOptionsForCommand($command)
 		);
+	}
+
+	public function getDescriptionForCommand(string $command): ?string
+	{
+		$chain = ['commands', $command, 'description'];
+		$result = $this->getValueIfKeyChainExists($chain);
+
+		return (isset($result) && (is_string($result) || is_null($result))) 
+			? $result : null;
 	}
 
 	// public function isOptionAvailableForCommand(string $option, string $command): bool
