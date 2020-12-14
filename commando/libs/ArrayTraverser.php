@@ -21,7 +21,7 @@ class ArrayTraverser implements Traverser
 			return true;
 		}
 		elseif (is_array($data) && array_key_exists($chain[0], $data) && 
-			is_string($chain[0]) || is_int($chain[0])) {
+			(is_string($chain[0]) || is_int($chain[0]))) {
 			
 			return $this->checkIfExistsChainForData(
 				array_slice($chain, 1),
@@ -77,5 +77,11 @@ class ArrayTraverser implements Traverser
 		else {
 			return $first;
 		}
+	}
+
+	public function getValueIfKeyChainExists(array $chain)
+	{
+		if ($this->nestedKeyChainExists($chain))
+			return $this->getValueByNestedKeyChain($chain);
 	}
 }
