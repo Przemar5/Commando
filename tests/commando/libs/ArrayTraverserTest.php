@@ -190,4 +190,38 @@ class ArrayTraverserTest extends PHPUnit\Framework\TestCase
 
 		$this->assertTrue($result === [null, 0, 'string', null]);
 	}
+
+	/**
+	 * @test
+	 * @dataProvider getValueIfKeyChainExistsDataProvider
+	 */
+	public function testIfGetValueIfKeyChainExistsReturnsCorrectResult(
+		array $chain, 
+		mixed $expected
+	)
+	{
+		$this->injectData1();
+		$result = $this->traverser->getValueIfKeyChainExists($chain);
+
+		if ($result)
+			$this->assertTrue($result === $expected);
+		else
+			$this->assertFalse(isset($result));
+	}
+
+	public function getValueIfKeyChainExistsDataProvider(): array
+	{
+		return [
+			[['base_1'], null],
+			[['base_5', 0], null],
+			[['base_7', 'layer_1_2'], [
+					[],
+					'layer_2_1' => null,
+					'layer_2_2' => 'layer_2_2_content',
+				]
+			],
+			[['base_7', 'layer_1_2', 'layer_2_2', 0], null],
+			[['base_7', 'layer_1_2', 'layer_2_2'], 'layer_2_2_content'],
+		];
+	}
 }

@@ -35,6 +35,7 @@ class ConfigDTOImplTest extends PHPUnit\Framework\TestCase
 			'commands' => [
 				'example:command' => [
 					'syntax' => '[self] [arg1 ,[arg2]]',
+					'description' => 'example command description',
 					'options' => [
 						'--third' => null,
 						'--fourth' => [
@@ -61,9 +62,10 @@ class ConfigDTOImplTest extends PHPUnit\Framework\TestCase
 				],
 				'third-command' => [
 					'syntax' => 1,
+					'description' => null,
 				],
 				'fourth:command' => [
-
+					'description' => 1,
 				],
 			],
 		];
@@ -140,12 +142,23 @@ class ConfigDTOImplTest extends PHPUnit\Framework\TestCase
 	/**
 	 * @test
 	 */
-	public function testIfGetSyntaxReturnsCorrectResultHasNoReturnWhenTheyAreMissing()
+	public function testIfGetSyntaxReturnsCorrectNullWhenIsMissing()
 	{
 		$configDTO = new ConfigDTOImpl([]);
 		$syntax = $configDTO->getSyntax();
 
-		$this->assertTrue(!isset($syntax));
+		$this->assertTrue($syntax === null);
+	}
+
+	/**
+	 * @test
+	 */
+	public function testIfGetSyntaxReturnsCorrectNullWhenNotString()
+	{
+		$configDTO = new ConfigDTOImpl(['description' => 1]);
+		$syntax = $configDTO->getSyntax();
+
+		$this->assertTrue($syntax === null);
 	}
 
 	/**
@@ -165,12 +178,12 @@ class ConfigDTOImplTest extends PHPUnit\Framework\TestCase
 	/**
 	 * @test
 	 */
-	public function testIfGetGenericOptionsHasNoReturnWhenTheyAreMissing()
+	public function testIfGetGenericOptionsReturnsEmptyArrayWhenTheyAreMissing()
 	{
 		$configDTO = new ConfigDTOImpl([]);
 		$options = $configDTO->getGenericOptions();
 
-		$this->assertTrue(!isset($options));
+		$this->assertTrue($options === []);
 	}
 
 	/**
@@ -182,24 +195,72 @@ class ConfigDTOImplTest extends PHPUnit\Framework\TestCase
 		$this->instantiateConfigDTOWithValidData();
 		$details = $this->configDTO->getCommandDetails('third-command');
 
-		$this->assertEquals($details, ['syntax' => 1]);
+		$this->assertEquals($details, [
+			'syntax' => 1,
+			'description' => null,
+		]);
 	}
 
 	/**
 	 * @test
 	 */
-	public function testIfGetCommandDetailsHasNoReturnWhenMissing()
+	public function testIfGetCommandDetailsReturnsWhenMissing()
 	{
 		$configDTO = new ConfigDTOImpl([]);
 		$details = $configDTO->getCommandDetails('missing');
 
-		$this->assertTrue(!isset($details));
+		$this->assertTrue($details === null);
 	}
 
 	/**
 	 * @test
 	 */
-	public function testIfGetSpecificOptionsForCommandReturnsCorrectResultWhenTheyExist()
+	public function testIfGetCommandDetailsReturnsEmptyArrayWhenMissing()
+	{
+		$configDTO = new ConfigDTOImpl([
+			'commands' => [
+				'command' => null,
+			]
+		]);
+		$details = $configDTO->getCommandDetails('command');
+
+		$this->assertTrue($details === null);
+	}
+
+	/**
+	 * @test
+	 */
+	public function testIfGetCommandDetailsReturnsEmptyArrayWhenValueOfDetailsIsEmptyArray()
+	{
+		$configDTO = new ConfigDTOImpl([
+			'commands' => [
+				'command' => [],
+			]
+		]);
+		$details = $configDTO->getCommandDetails('command');
+
+		$this->assertTrue($details === []);
+	}
+
+	/**
+	 * @test
+	 */
+	public function testIfGetCommandDetailsReturnsEmptyNullWhenValueOfDetailsIsNotArray()
+	{
+		$configDTO = new ConfigDTOImpl([
+			'commands' => [
+				'command' => 'something',
+			]
+		]);
+		$details = $configDTO->getCommandDetails('command');
+
+		$this->assertTrue($details === null);
+	}
+
+	/**
+	 * @test
+	 */
+	public function testIfGetSpecificOptionsForCommandReturnsCorrectResultWhenTheyExistAndAreArray()
 	{
 		$this->instantiateConfigDTOWithValidData();
 		$options = $this->configDTO->getSpecificOptionsForCommand('example:command');
@@ -223,12 +284,29 @@ class ConfigDTOImplTest extends PHPUnit\Framework\TestCase
 	/**
 	 * @test
 	 */
-	public function testIfGetSpecificOptionsForCommandHasNoReturnWhenTheyTheyAreMissing()
+	public function testIfGetSpecificOptionsForCommandReturnsEmptyArrayWhenTheyAreMissing()
 	{
 		$this->instantiateConfigDTOWithValidData();
 		$options = $this->configDTO->getSpecificOptionsForCommand('fourth:command');
 
-		$this->assertTrue(!isset($options));
+		$this->assertTrue($options === []);
+	}
+
+	/**
+	 * @test
+	 */
+	public function testIfGetSpecificOptionsForCommandReturnsEmptyArrayWhenTheyAreNotArray()
+	{
+		$configDTO = new ConfigDTOImpl([
+			'commands' => [
+				'comm' => [
+					'options' => 'invalid type',
+				]
+			]
+		]);
+		$options = $configDTO->getSpecificOptionsForCommand('fourth:command');
+
+		$this->assertTrue($options === []);
 	}
 
 	/**
@@ -294,7 +372,7 @@ class ConfigDTOImplTest extends PHPUnit\Framework\TestCase
 		$this->instantiateConfigDTOWithValidData();
 		$result = $this->configDTO->isGenericOptionAvailable($option);
 
-		$this->assertEquals($result, $expected);
+		$this->assertEquals($expected, $result);
 	}
 
 	public function dataForIsGenericOptionAvailable()
@@ -302,6 +380,35 @@ class ConfigDTOImplTest extends PHPUnit\Framework\TestCase
 		return [
 			['missing', false],
 			['--first', true],
+		];
+	}
+
+	/**
+	 * @test
+	 * @dataProvider dataForGetDescriptionForCommand
+	 */
+	public function testIfGetDescriptionForCommandReturnsCorrectResult(
+		string $command,
+		?string $expected
+	)
+	{
+		$this->instantiateConfigDTOWithValidData();
+		$result = $this->configDTO->getDescriptionForCommand($command);
+
+		// if ($command == 'third-command')
+			// die(PHP_EOL.$result);
+
+		$this->assertEquals($expected, $result);
+	}
+
+	public function dataForGetDescriptionForCommand()
+	{
+		return [
+			['example:command', 'example command description'],
+			['missing:command', null],
+			['next:example', null],
+			['third-command', null],
+			['fourth:command', null],
 		];
 	}
 
