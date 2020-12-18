@@ -5,7 +5,7 @@ namespace Commando\Framework;
 use Commando\Converters\Converter;
 use Commando\Validators\Validator;
 
-class CommandLineParser
+abstract class CommandLineParser
 {
 	private Validator $validator;
 	private array $syntax;
