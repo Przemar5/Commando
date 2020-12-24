@@ -1,9 +1,9 @@
 <?php
 
-require_once './commando/libs/Traverser.php';
-require_once './commando/libs/ArrayTraverser.php';
+require_once './commando/utils/Traverser.php';
+require_once './commando/utils/ArrayTraverser.php';
 
-use \Commando\Libs\ArrayTraverser;
+use \Commando\Utils\ArrayTraverser;
 
 class ArrayTraverserTest extends PHPUnit\Framework\TestCase
 {

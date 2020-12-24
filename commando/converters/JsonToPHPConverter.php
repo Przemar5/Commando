@@ -3,7 +3,6 @@
 namespace Commando\Converters;
 
 use Commando\Converters\Converter;
-use Commando\Exceptions\InvalidFileFormatException;
 
 class JsonToPHPConverter implements Converter
 {

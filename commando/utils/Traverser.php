@@ -1,6 +1,6 @@
 <?php
 
-namespace Commando\Libs;
+namespace Commando\Utils;
 
 interface Traverser
 {

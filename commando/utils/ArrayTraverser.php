@@ -1,10 +1,10 @@
 <?php
 
-namespace Commando\Libs;
+namespace Commando\Utils;
 
-require_once './commando/libs/Traverser.php';
+require_once './commando/utils/Traverser.php';
 
-use Commando\Libs\Traverser;
+use Commando\Utils\Traverser;
 
 class ArrayTraverser implements Traverser
 {

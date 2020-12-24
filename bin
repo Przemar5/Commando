@@ -1,0 +1,33 @@
+<?php
+
+require_once './vendor/autoload.php';
+
+use Commando\Converters\JsonToPHPConverter;
+use Commando\Models\SettingsArray;
+use Commando\Parsers\ConsoleParser;
+use Commando\Commands\CommandBuilder;
+
+spl_autoload_register(function(string $class) {
+	$tokens = explode('\\', $class);
+	$class = array_pop($tokens);
+	$tokens = array_map(fn($t) => strtolower($t), $tokens);
+	$subPath = implode(DIRECTORY_SEPARATOR, $tokens);
+	$path = $subPath . DIRECTORY_SEPARATOR . $class . '.php';
+
+	if (is_readable($path))
+		require_once $path;
+});
+
+$file = file_get_contents('./config.json');
+$config = JsonToPHPConverter::convert($file);
+$settings = new SettingsArray($config);
+$parser = new ConsoleParser($settings);
+$parser->parseTokens(array_slice($argv, 1));
+
+$builder = new CommandBuilder();
+$builder->init();
+$builder->setClass($parser->getCommandClass());
+$builder->setArgs($parser->getArgs());
+$builder->setOptions($parser->getOptions());
+$command = $builder->getResult();
+$command->execute();

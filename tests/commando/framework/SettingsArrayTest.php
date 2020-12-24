@@ -3,21 +3,17 @@
 declare(strict_types = 1);
 // namespace Tests\Commando\Framework;
 
-require_once './commando/framework/SettingsArray.php';
-require_once './commando/libs/ArrayTraverser.php';
+require_once './commando/models/SettingsArray.php';
+require_once './commando/utils/ArrayTraverser.php';
 
-use \Commando\Framework\SettingsArray;
-use \Commando\Libs\ArrayTraverser;
+use \Commando\Models\SettingsArray;
+use \Commando\Utils\ArrayTraverser;
 
 class SettingsArrayTest extends PHPUnit\Framework\TestCase
 {
 	public array $data;
 	public SettingsArray $settings;
-
-	// public function setUp(): void
-	// {
-	// 	$this->configDTO = 
-	// }
+	
 
 	/**@test */
 	public function testIfWorks()
@@ -36,7 +32,7 @@ class SettingsArrayTest extends PHPUnit\Framework\TestCase
 			],
 			'commands' => [
 				'example:command' => [
-					'syntax' => '[self] [arg1 ,[arg2]]',
+					'args' => ['arg1', 'arg2'],
 					'description' => 'example command description',
 					'options' => [
 						'--third' => null,
@@ -58,12 +54,12 @@ class SettingsArrayTest extends PHPUnit\Framework\TestCase
 					],
 				],
 				'next:example' => [
-					'syntax' => '[self]',
+					'args' => [],
 					'options' => null,
 					'args' => null,
 				],
 				'third-command' => [
-					'syntax' => 1,
+					'args' => 1,
 					'description' => null,
 				],
 				'fourth:command' => [
@@ -88,107 +84,86 @@ class SettingsArrayTest extends PHPUnit\Framework\TestCase
 		$this->assertIsObject($this->settings);
 	}
 
-	// isCommandAvailable tests
+	// commandExists tests
 
 	/**
 	 * @test
-	 * @dataProvider isCommandAvailableDataProvider
+	 * @dataProvider commandExistsDataProvider
 	 */
-	public function testIfIsCommandAvailableReturnsCorrectResult(
+	public function testIfCommandExistsReturnsCorrectResult(
 		$settings, 
 		string $command,
 		bool $expected
 	)
 	{
-		$result = $settings->isCommandAvailable($command);
+		$result = $settings->commandExists($command);
 
 		$this->assertTrue($result === $expected);
 	}
 
-	public function isCommandAvailableDataProvider()
+	public function commandExistsDataProvider()
 	{
 		$settings = new SettingsArray([
 			'commands' => [
 				'first:command' => null,
-				'second:command' => [],
+				'second:command' => [
+					'fifth:command' => '',
+				],
 				'third:command',
 			],
+			'fourth:command' => null,
 		]);
 
 		return [
 			[$settings, 'first:command', true],
 			[$settings, 'next:example', false],
 			[$settings, 'third:command', false],
+			[$settings, 'fourth:command', false],
+			[$settings, 'fifth:command', false],
 		];
 	}
 
-	// getSyntax tests
+	// getCommandArgs tests
 
 	/**
 	 * @test
-	 * @dataProvider getSyntaxDataProvider
+	 * @dataProvider getCommandArgsDataProvider
 	 */
-	public function testIfGetSyntaxReturnsCorrectResultWhenExists(
-		SettingsArray $settings,
-		mixed $expected
-	)
-	{
-		$syntax = $settings->getSyntax();
-
-		$this->assertEquals($syntax, $expected);
-	}
-
-	public function getSyntaxDataProvider(): array
-	{
-		return [
-			[new SettingsArray(['syntax' => '?options command']), '?options command'],
-			[new SettingsArray(['syntax' => '']), ''],
-			[new SettingsArray(['syntax' => 1]), null],
-			[new SettingsArray(['syntax' => null]), null],
-			[new SettingsArray([]), null],
-			[new SettingsArray(['syntax']), null],
-		];
-	}
-
-	// getCommandSyntax tests
-
-	/**
-	 * @test
-	 * @dataProvider getCommandSyntaxDataProvider
-	 */
-	public function testIfGetCommandSyntaxReturnsCorrectResult(
+	public function testIfGetCommandArgsReturnsCorrectResult(
 		SettingsArray $settings,
 		string $command,
-		mixed $expected
+		array $expected
 	)
 	{
-		$result = $settings->getCommandSyntax($command);
+		$result = $settings->getCommandArgs($command);
 
 		$this->assertTrue($result === $expected);
 	}
 
-	public function getCommandSyntaxDataProvider(): array
+	public function getCommandArgsDataProvider(): array
 	{
 		$settings = new SettingsArray([
 			'commands' => [
 				'first:command' => null,
-				'second:command' => ['syntax'],
-				'third:command' => ['syntax' => null],
-				'fourth:command' => ['syntax' => ''],
-				'fifth:command' => ['syntax' => 'command arg1 ?arg2'],
-				'sixth:command' => ['syntax' => 45],
-				'seventh:command' => ['syntax' => []],
+				'second:command' => ['args'],
+				'third:command' => ['args' => null],
+				'fourth:command' => ['args' => ''],
+				'fifth:command' => ['args' => ['arg1', 'arg2']],
+				'sixth:command' => ['args' => ['arg1' => 'a', 'arg2' => 'b']],
+				'seventh:command' => ['args' => 45],
+				'eigth:command' => ['args' => []],
 			],
 		]);
 
 		return [
-			[$settings, 'first:command', null],
-			[$settings, 'second:command', null],
-			[$settings, 'third:command', null],
-			[$settings, 'fourth:command', ''],
-			[$settings, 'fifth:command', 'command arg1 ?arg2'],
-			[$settings, 'sixth:command', null],
-			[$settings, 'seventh:command', null],
+			[$settings, 'first:command', []],
+			[$settings, 'second:command', []],
+			[$settings, 'third:command', []],
+			[$settings, 'fourth:command', []],
+			[$settings, 'fifth:command', ['arg1', 'arg2']],
+			[$settings, 'sixth:command', ['a', 'b']],
+			[$settings, 'seventh:command', []],
+			[$settings, 'eigth:command', []],
 		];
 	}
 
@@ -234,6 +209,38 @@ class SettingsArrayTest extends PHPUnit\Framework\TestCase
 		];
 	}
 
+	// getCommandClass tests
+
+	/**
+	 * @test
+	 * @dataProvider getCommandClassDataProvider
+	 */
+	public function testIfGetCommandClassReturnsCorrectResult(
+		SettingsArray $settings,
+		string $command,
+		?string $expected
+	)
+	{
+		$class = $settings->getCommandClass($command);
+
+		$this->assertEquals($class, $expected);
+	}
+
+	public function getCommandClassDataProvider(): array
+	{
+		$settings = new SettingsArray([
+			'commands' => [
+				'first:command' => null,
+				'second:command' => ['class' => 'ExampleCommand'],
+			],
+		]);
+
+		return [
+			[$settings, 'first:command', null],
+			[$settings, 'second:command', 'ExampleCommand'],
+		];
+	}
+
 	// commandOptionExists tests
 
 	/**
@@ -255,6 +262,11 @@ class SettingsArrayTest extends PHPUnit\Framework\TestCase
 	public function commandOptionExistsDataProvider(): array
 	{
 		$settings = new SettingsArray([
+			'options' => [
+				'opt2',
+				'opt3' => null,
+				'opt4' => '',
+			],
 			'commands' => [
 				'first:command' => null,
 				'second:command' => ['options'],
@@ -279,506 +291,169 @@ class SettingsArrayTest extends PHPUnit\Framework\TestCase
 			[$settings, 'seventh:command', 'opt1', true],
 			[$settings, 'eigth:command', 'opt1', true],
 			[$settings, 'ninth:command', 'opt1', true],
+			[$settings, 'ninth:command', 'opt2', false],
+			[$settings, 'ninth:command', 'opt3', true],
+			[$settings, 'ninth:command', 'opt4', true],
+			[$settings, 'missing:command', 'opt4', false],
 		];
 	}
 
 	// getCommandOptionDescription tests
 
-	
+	/**
+	 * @test
+	 * @dataProvider getCommandOptionDescriptionDataProvider
+	 */
+	public function testIfGetCommandOptionDescriptionReturnsCorrectResult(
+		SettingsArray $settings,
+		string $command,
+		string $option,
+		mixed $expected
+	)
+	{
+		$result = $settings->getCommandOptionDescription($command, $option);
 
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetSyntaxReturnsCorrectNullWhenIsMissing()
-	// {
-	// 	$configDTO = new ConfigDTOImpl([]);
-	// 	$syntax = $configDTO->getSyntax();
+		$this->assertTrue($result === $expected);
+	}
 
-	// 	$this->assertTrue($syntax === null);
-	// }
+	public function getCommandOptionDescriptionDataProvider(): array
+	{
+		$settings = new SettingsArray([
+			'options' => [
+				'opt2',
+				'opt3' => null,
+				'opt4' => ['description'],
+				'opt5' => ['description' => null],
+				'opt6' => ['description' => 1],
+				'opt7' => ['description' => ''],
+				'opt8' => ['description' => 'desc'],
+			],
+			'commands' => [
+				'first:command' => null,
+				'second:command' => ['options'],
+				'third:command' => ['options' => null],
+				'fourth:command' => ['options' => ['' => null]],
+				'fourth:command' => ['options' => [null]],
+				'fifth:command' => ['options' => [0 => null]],
+				'sixth:command' => ['options' => ['opt1']],
+				'seventh:command' => ['options' => ['opt1' => null]],
+				'eigth:command' => ['options' => ['opt1' => '']],
+				'ninth:command' => ['options' => ['opt1' => ['description']]],
+				'tenth:command' => ['options' => ['opt1' => ['description' => null]]],
+				'eleventh:command' => ['options' => ['opt1' => ['description' => 1]]],
+				'twelfth:command' => ['options' => ['opt1' => ['description' => '']]],
+				'thirtenth:command' => ['options' => ['opt1' => ['description' => 'desc']]],
+			],
+		]);
 
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetSyntaxReturnsCorrectNullWhenNotString()
-	// {
-	// 	$configDTO = new ConfigDTOImpl(['description' => 1]);
-	// 	$syntax = $configDTO->getSyntax();
+		return [
+			[$settings, 'first:command', 'opt1', null],
+			[$settings, 'second:command', 'opt1', null],
+			[$settings, 'third:command', 'opt1', null],
+			[$settings, 'fourth:command', '', null],
+			[$settings, 'fifth:command', 'opt1', null],
+			[$settings, 'sixth:command', 'opt1', null],
+			[$settings, 'seventh:command', 'opt1', null],
+			[$settings, 'eigth:command', 'opt1', null],
+			[$settings, 'ninth:command', 'opt1', null],
+			[$settings, 'tenth:command', 'opt1', null],
+			[$settings, 'eleventh:command', 'opt1', null],
+			[$settings, 'twelfth:command', 'opt1', ''],
+			[$settings, 'thirtenth:command', 'opt1', 'desc'],
+			[$settings, 'thirtenth:command', 'opt2', null],
+			[$settings, 'thirtenth:command', 'opt3', null],
+			[$settings, 'thirtenth:command', 'opt4', null],
+			[$settings, 'thirtenth:command', 'opt5', null],
+			[$settings, 'thirtenth:command', 'opt6', null],
+			[$settings, 'thirtenth:command', 'opt7', ''],
+			[$settings, 'thirtenth:command', 'opt8', 'desc'],
+			[$settings, 'missing:command', 'opt8', null],
+		];
+	}
 
-	// 	$this->assertTrue($syntax === null);
-	// }
+	// getCommandOptionArgs tests
 
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetGenericOptionsReturnsCorrectResultWhenTheyExist()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$options = $this->configDTO->getGenericOptions();
+	/**
+	 * @test
+	 * @dataProvider getCommandOptionArgsDataProvider
+	 */
+	public function testIfGetCommandOptionArgsReturnsCorrectResult(
+		SettingsArray $settings,
+		string $command,
+		string $option,
+		array $expected
+	)
+	{
+		$result = $settings->getCommandOptionArgs($command, $option);
 
-	// 	$this->assertEquals($options, [
-	// 		'--first' => null,
-	// 		'--second' => [],
-	// 		'--some-option' => 'details',
-	// 	]);
-	// }
+		$this->assertTrue($result === $expected);
+	}
 
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetGenericOptionsReturnsEmptyArrayWhenTheyAreMissing()
-	// {
-	// 	$configDTO = new ConfigDTOImpl([]);
-	// 	$options = $configDTO->getGenericOptions();
+	public function getCommandOptionArgsDataProvider(): array
+	{
+		$settings = new SettingsArray([
+			'options' => [
+				'opt2',
+				'opt3' => null,
+				'opt4' => ['args'],
+				'opt5' => ['args' => null],
+				'opt6' => ['args' => 1],
+				'opt7' => ['args' => []],
+				'opt8' => ['args' => ''],
+				'opt9' => ['args' => 'arg'],
+				'opt10' => ['args' => ['arg1', 'arg2']],
+				'opt11' => ['args' => ['a' => 'arg1', 'b' => 'arg2']],
+				'opt12' => ['args' => ['a' => 1, 'b' => 2]],
+			],
+			'commands' => [
+				'first:command' => null,
+				'second:command' => ['options'],
+				'third:command' => ['options' => null],
+				'fourth:command' => ['options' => ['' => null]],
+				'fourth:command' => ['options' => [null]],
+				'fifth:command' => ['options' => [0 => null]],
+				'sixth:command' => ['options' => ['opt1']],
+				'seventh:command' => ['options' => ['opt1' => null]],
+				'eigth:command' => ['options' => ['opt1' => '']],
+				'ninth:command' => ['options' => ['opt1' => ['args']]],
+				'tenth:command' => ['options' => ['opt1' => ['args' => null]]],
+				'eleventh:command' => ['options' => ['opt1' => ['args' => 1]]],
+				'twelfth:command' => ['options' => ['opt1' => ['args' => '']]],
+				'thirtenth:command' => ['options' => ['opt1' => ['args' => 'arg1']]],
+				'fourtenth:command' => ['options' => ['opt1' => ['args' => ['arg1', 'arg2']]]],
+				'fiftenth:command' => ['options' => ['opt1' => ['args' => ['a' => 'arg1', 'b' => 'arg2']]]],
+				'sixtenth:command' => ['options' => ['opt1' => ['args' => ['a' => 1, 'b' => 2]]]],
+			],
+		]);
 
-	// 	$this->assertTrue($options === []);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetCommandDetailsReturnsDetailsWhenCommandExists()
-	// {
-
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$details = $this->configDTO->getCommandDetails('third-command');
-
-	// 	$this->assertEquals($details, [
-	// 		'syntax' => 1,
-	// 		'description' => null,
-	// 	]);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetCommandDetailsReturnsWhenMissing()
-	// {
-	// 	$configDTO = new ConfigDTOImpl([]);
-	// 	$details = $configDTO->getCommandDetails('missing');
-
-	// 	$this->assertTrue($details === null);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetCommandDetailsReturnsEmptyArrayWhenMissing()
-	// {
-	// 	$configDTO = new ConfigDTOImpl([
-	// 		'commands' => [
-	// 			'command' => null,
-	// 		]
-	// 	]);
-	// 	$details = $configDTO->getCommandDetails('command');
-
-	// 	$this->assertTrue($details === null);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetCommandDetailsReturnsEmptyArrayWhenValueOfDetailsIsEmptyArray()
-	// {
-	// 	$configDTO = new ConfigDTOImpl([
-	// 		'commands' => [
-	// 			'command' => [],
-	// 		]
-	// 	]);
-	// 	$details = $configDTO->getCommandDetails('command');
-
-	// 	$this->assertTrue($details === []);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetCommandDetailsReturnsEmptyNullWhenValueOfDetailsIsNotArray()
-	// {
-	// 	$configDTO = new ConfigDTOImpl([
-	// 		'commands' => [
-	// 			'command' => 'something',
-	// 		]
-	// 	]);
-	// 	$details = $configDTO->getCommandDetails('command');
-
-	// 	$this->assertTrue($details === null);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetSpecificOptionsForCommandReturnsCorrectResultWhenTheyExistAndAreArray()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$options = $this->configDTO->getSpecificOptionsForCommand('example:command');
-
-	// 	$this->assertEquals($options, [
-	// 		'--third' => null,
-	// 		'--fourth' => [
-	// 			'descripttion' => null,
-	// 			'args' => null,
-	// 		],
-	// 		'--fifth' => [
-	// 			'decsription' => 'some desc',
-	// 			'args' => [
-	// 				'optArg1' => null,
-	// 				'optArg2' => null,
-	// 			],
-	// 		]
-	// 	]);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetSpecificOptionsForCommandReturnsEmptyArrayWhenTheyAreMissing()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$options = $this->configDTO->getSpecificOptionsForCommand('fourth:command');
-
-	// 	$this->assertTrue($options === []);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetSpecificOptionsForCommandReturnsEmptyArrayWhenTheyAreNotArray()
-	// {
-	// 	$configDTO = new ConfigDTOImpl([
-	// 		'commands' => [
-	// 			'comm' => [
-	// 				'options' => 'invalid type',
-	// 			]
-	// 		]
-	// 	]);
-	// 	$options = $configDTO->getSpecificOptionsForCommand('fourth:command');
-
-	// 	$this->assertTrue($options === []);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetOptionsForCommandReturnsCorrectResultWhenTheyExist()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$options = $this->configDTO->getOptionsForCommand('example:command');
-
-	// 	$this->assertEquals($options, [
-	// 		'--first' => null,
-	// 		'--second' => [],
-	// 		'--third' => null,
-	// 		'--some-option' => 'details',
-	// 		'--fourth' => [
-	// 			'descripttion' => null,
-	// 			'args' => null,
-	// 		],
-	// 		'--fifth' => [
-	// 			'decsription' => 'some desc',
-	// 			'args' => [
-	// 				'optArg1' => null,
-	// 				'optArg2' => null,
-	// 			],
-	// 		]
-	// 	]);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetOptionsForCommandHasNoReturnsEmptyArrayWhenAllOptionsAreMissing()
-	// {
-	// 	$configDTO = new ConfigDTOImpl([]);
-	// 	$options = $configDTO->getOptionsForCommand('fourth:command');
-
-	// 	$this->assertTrue($options === []);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetOptionsForCommandReturnsOnlyGenericOptionsWhenCommandIsMissing()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$options = $this->configDTO->getOptionsForCommand('fourth:command');
-
-	// 	$this->assertTrue($options === [
-	// 		'--first' => null,
-	// 		'--second' => [],
-	// 		'--some-option' => 'details',
-	// 	]);
-	// }
-
-	// /**
-	//  * @test
-	//  * @dataProvider dataForIsGenericOptionAvailable
-	//  */
-	// public function testIfIsGenericOptionAvailableReturnsCorrectResult(
-	// 	string $option,
-	// 	bool $expected
-	// )
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->isGenericOptionAvailable($option);
-
-	// 	$this->assertEquals($expected, $result);
-	// }
-
-	// public function dataForIsGenericOptionAvailable()
-	// {
-	// 	return [
-	// 		['missing', false],
-	// 		['--first', true],
-	// 	];
-	// }
-
-	// /**
-	//  * @test
-	//  * @dataProvider dataForGetDescriptionForCommand
-	//  */
-	// public function testIfGetDescriptionForCommandReturnsCorrectResult(
-	// 	string $command,
-	// 	?string $expected
-	// )
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getDescriptionForCommand($command);
-
-	// 	// if ($command == 'third-command')
-	// 		// die(PHP_EOL.$result);
-
-	// 	$this->assertEquals($expected, $result);
-	// }
-
-	// public function dataForGetDescriptionForCommand()
-	// {
-	// 	return [
-	// 		['example:command', 'example command description'],
-	// 		['missing:command', null],
-	// 		['next:example', null],
-	// 		['third-command', null],
-	// 		['fourth:command', null],
-	// 	];
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetGenericOptionDetailsReturnsCorrectResultWhenOptionExists()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 		$result = $this->configDTO->getGenericOptionDetails('--second');
-
-	// 	$this->assertTrue($result === []);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetGenericOptionDetailsReturnsNullWhenOptionMissing()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getGenericOptionDetails('--sixth');
-
-	// 	$this->assertTrue($result === null);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetGenericOptionDetailsReturnsNullWhenDetailsAreNotArray()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getGenericOptionDetails('--some-option');
-
-	// 	$this->assertTrue($result === null);
-	// }
-
-	// /**
-	//  * @test
-	//  * @dataProvider dataForIsOptionAvailableForCommand
-	//  */
-	// public function testIfIsOptionAvailableForCommandReturnsCorrectValue(
-	// 	string $option,
-	// 	string $command,
-	// 	mixed $expected
-	// )
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->isOptionAvailableForCommand($option, $command);
-
-	// 	$this->assertTrue($result === $expected);
-	// }
-
-	// public function dataForIsOptionAvailableForCommand(): array
-	// {
-	// 	return [
-	// 		['--first', 'example:command', true],
-	// 		['--first', 'missing', false],
-	// 		['--third', 'next:example', false],
-	// 		['--third', 'example:command', true],
-	// 	];
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetOptionDetailsForCommandReturnsCorrectResultIfOptionExists()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getOptionDetailsForCommand('--fourth', 'example:command');
-
-	// 	$this->assertTrue($result === [
-	// 		'descripttion' => null,
-	// 		'args' => null,
-	// 	]);
-	// }
-
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetOptionDetailsForCommandReturnsCorrectResultNullIfOptionDoesNotExistForCommand()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getOptionDetailsForCommand('--sixth', 'example:command');
-
-	// 	$this->assertTrue($result === null);
-	// }
-	
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetOptionDetailsForCommandReturnsNullIfCommandIsMissing()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getOptionDetailsForCommand('--first', 'some-missing-command');
-
-	// 	$this->assertTrue($result === null);
-	// }
-	
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetOptionDetailsForCommandReturnsNullIfOptionIsMissing()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getOptionDetailsForCommand('--sixth', 'example:command');
-
-	// 	$this->assertTrue($result === null);
-	// }
-	
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetOptionDetailsForCommandReturnsNullIfDetailAreNotArray()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getOptionDetailsForCommand('--some-option', 'example:command');
-
-	// 	$this->assertTrue($result === null);
-	// }
-	
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetArgsForOptionForCommandReturnsEmptyArrayWhenDetailsMissing()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getArgsForOptionForCommand('--third', 'example:command');
-
-	// 	$this->assertTrue($result === []);
-	// }
-	
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetArgsForOptionForCommandReturnsEmptyArrayWhenOptionIsMissing()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getArgsForOptionForCommand('--third', 'next:example');
-
-	// 	$this->assertTrue($result === []);
-	// }
-	
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetArgsForOptionForCommandReturnsEmptyArrayWhenCommandIsMissing()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getArgsForOptionForCommand('--third', 'missing-command');
-
-	// 	$this->assertTrue($result === []);
-	// }
-	
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetArgsForOptionForCommandReturnsCorrectResultWhenNothingIsMissing()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getArgsForOptionForCommand('--fifth', 'example:command');
-
-	// 	$this->assertTrue($result === [
-	// 		'optArg1' => null,
-	// 		'optArg2' => null,
-	// 	]);
-	// }
-	
-	// /**
-	//  * @test
-	//  */
-	// public function testIfGetArgsForOptionForCommandReturnsCorrectResultIfBothExist()
-	// {
-	// 	$this->instantiateConfigDTOWithValidData();
-	// 	$result = $this->configDTO->getOptionDetailsForCommand('--third', 'example:command');
-
-	// 	$this->assertTrue($result === null);
-	// }
-
-	// [
-	// 		'syntax' => '[options] [commands]',
-	// 		'options' => [
-	// 			'--first' => null,
-	// 			'--second' => [],
-	// 			'--some-option' => 'details',
-	// 		],
-	// 		'commands' => [
-	// 			'example:command' => [
-	// 				'syntax' => '[self] [arg1 ,[arg2]]',
-	// 				'description' => 'example command description',
-	// 				'options' => [
-	// 					'--third' => null,
-	// 					'--fourth' => [
-	// 						'descripttion' => null,
-	// 						'args' => null,
-	// 					],
-	// 					'--fifth' => [
-	// 						'decsription' => 'some desc',
-	// 						'args' => [
-	// 							'optArg1' => null,
-	// 							'optArg2' => null,
-	// 						],
-	// 					],
-	// 				],
-	// 				'args' => [
-	// 					'commArgName',
-	// 					'commArgValue',
-	// 				],
-	// 			],
-	// 			'next:example' => [
-	// 				'syntax' => '[self]',
-	// 				'options' => null,
-	// 				'args' => null,
-	// 			],
-	// 			'third-command' => [
-	// 				'syntax' => 1,
-	// 				'description' => null,
-	// 			],
-	// 			'fourth:command' => [
-	// 				'description' => 1,
-	// 			],
-	// 		],
-	// 	];
+		return [
+			[$settings, 'first:command', 'opt1', []],
+			[$settings, 'second:command', 'opt1', []],
+			[$settings, 'third:command', 'opt1', []],
+			[$settings, 'fourth:command', '', []],
+			[$settings, 'fifth:command', 'opt1', []],
+			[$settings, 'sixth:command', 'opt1', []],
+			[$settings, 'seventh:command', 'opt1', []],
+			[$settings, 'eigth:command', 'opt1', []],
+			[$settings, 'ninth:command', 'opt1', []],
+			[$settings, 'tenth:command', 'opt1', []],
+			[$settings, 'eleventh:command', 'opt1', []],
+			[$settings, 'twelfth:command', 'opt1', []],
+			[$settings, 'thirtenth:command', 'opt1', []],
+			[$settings, 'fourtenth:command', 'opt1', ['arg1', 'arg2']],
+			[$settings, 'fiftenth:command', 'opt1', ['arg1', 'arg2']],
+			[$settings, 'sixtenth:command', 'opt1', []],
+			[$settings, 'first:command', 'opt2', []],
+			[$settings, 'first:command', 'opt3', []],
+			[$settings, 'first:command', 'opt4', []],
+			[$settings, 'first:command', 'opt5', []],
+			[$settings, 'first:command', 'opt6', []],
+			[$settings, 'first:command', 'opt7', []],
+			[$settings, 'first:command', 'opt8', []],
+			[$settings, 'first:command', 'opt9', []],
+			[$settings, 'first:command', 'opt10', ['arg1', 'arg2']],
+			[$settings, 'first:command', 'opt11', ['arg1', 'arg2']],
+			[$settings, 'first:command', 'opt12', []],
+		];
+	}
 }
